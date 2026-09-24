@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fallwood Marina — 3D Site Map</title>
+  <style>
+    :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, sans-serif; }
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow: hidden; background: #09110f; color: #eef5ef; }
+    #map { position: fixed; inset: 0; }
+    .panel { position: fixed; z-index: 2; background: rgba(8,18,16,.84); backdrop-filter: blur(14px); border: 1px solid rgba(198,224,200,.17); box-shadow: 0 16px 45px rgba(0,0,0,.27); }
+    header { top: 18px; left: 18px; right: 18px; display:flex; align-items:center; justify-content:space-between; gap:20px; padding:14px 16px; border-radius:15px; }
+    h1 { margin:0; font-size:16px; letter-spacing:.02em; font-weight:700; }
+    header p { margin:3px 0 0; color:#aac0b1; font-size:12px; }
+    .status { padding:6px 9px; border-radius:99px; background:#11362a; color:#a9e7c2; font-size:12px; white-space:nowrap; }
+    aside { top:92px; left:18px; width:230px; padding:14px; border-radius:15px; }
+    .label { display:block; color:#9bb4a4; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; margin:13px 0 8px; }
+    .label:first-child { margin-top:0; }
+    button { width:100%; appearance:none; border:1px solid rgba(201,229,209,.16); background:#13231e; color:#e7f0e9; border-radius:9px; padding:9px 10px; text-align:left; cursor:pointer; margin:4px 0; font-size:13px; }
+    button:hover, button.active { background:#20523e; border-color:#63c990; }
+    .hint { position:fixed; right:18px; bottom:18px; z-index:2; padding:10px 12px; border-radius:11px; font-size:12px; color:#c2d3c6; }
+    .legend { position:fixed; right:18px; top:92px; z-index:2; width:195px; padding:13px; border-radius:15px; font-size:12px; color:#bfd0c3; }
+    .row { display:flex; justify-content:space-between; margin:8px 0; }
+    .swatch { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; }
+    @media(max-width:700px) { aside { width:200px; top:84px; left:10px; } header { top:10px; left:10px; right:10px; } .legend { display:none; } }
+  </style>
+</head>
+<body>
+  <main id="map" aria-label="Interactive 3D map of Fallwood Marina"></main>
+  <header class="panel">
+    <div><h1>Fallwood Marina — 3D working map</h1><p>Google satellite reference • Pollard Lane, Bramley</p></div>
+    <div class="status">Footprint model · v1</div>
+  </header>
+  <aside class="panel">
+    <span class="label">View</span>
+    <button class="active" data-view="site">Whole site</button>
+    <button data-view="yard">Boat yard</button>
+    <button data-view="basin">South basin</button>
+    <button data-view="access">Access & canal</button>
+    <span class="label">Overlays</span>
+    <button class="active" data-toggle="contours">Terrain contours</button>
+    <button class="active" data-toggle="labels">Site labels</button>
+    <button class="active" data-toggle="trees">Woodland canopy</button>
+  </aside>
+  <section class="panel legend">
+    <strong>Reference key</strong>
+    <div class="row"><span><i class="swatch" style="background:#499d77"></i>yard / hardstanding</span></div>
+    <div class="row"><span><i class="swatch" style="background:#1b5870"></i>water</span></div>
+    <div class="row"><span><i class="swatch" style="background:#d8d3bd"></i>boats & buildings</span></div>
+    <div class="row"><span><i class="swatch" style="background:#194e35"></i>woodland</span></div>
+  </section>
+  <div class="panel hint">Drag to orbit · Scroll to zoom · This is a geometry test, not a survey</div>
+  <script type="module">
+    import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js';
+    import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/controls/OrbitControls.js';
+
+    const root = document.querySelector('#map');
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x09110f);
+    scene.fog = new THREE.FogExp2(0x09110f, .006);
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, .1, 1000);
+    const renderer = new THREE.WebGLRenderer({antialias:true}); renderer.setSize(innerWidth, innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.shadowMap.enabled=true; root.append(renderer.domElement);
+    const controls = new OrbitControls(camera, renderer.domElement); controls.enableDamping=true; controls.target.set(0,0,0); controls.maxPolarAngle=Math.PI*.48;
+    scene.add(new THREE.HemisphereLight(0xbbe1e3, 0x112118, 2.1));
+    const sun = new THREE.DirectionalLight(0xfff5d2, 2.5); sun.position.set(-80,120,60); sun.castShadow=true; scene.add(sun);
+    const terrain = new THREE.Group(), trees = new THREE.Group(), labels = new THREE.Group(), contours = new THREE.Group(); scene.add(terrain,trees,labels,contours);
+    const mat = (c, rough=.82) => new THREE.MeshStandardMaterial({color:c,roughness:rough,metalness:.03});
+    const waterMat = new THREE.MeshStandardMaterial({color:0x1c637c,roughness:.25,metalness:.24});
+    const grass=mat(0x387957), gravel=mat(0x727766), road=mat(0x323b38), building=mat(0xddd5bc), boatMat=mat(0xe8e3d4,.45);
+    function box(x,z,w,d,h,m,y=h/2){ const n=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),m); n.position.set(x,y,z); n.castShadow=n.receiveShadow=true; terrain.add(n); return n; }
+    // Low-relief base, then the satellite-traced operational areas.
+    const base=new THREE.Mesh(new THREE.PlaneGeometry(180,235,60,70),mat(0x28533a)); base.rotation.x=-Math.PI/2; base.receiveShadow=true; terrain.add(base);
+    // Canal on the western edge, following the north/south curve visible in the reference.
+    const canalPts=[[-58,113],[-53,72],[-44,34],[-41,-12],[-43,-65],[-36,-111]].map(([x,z])=>new THREE.Vector3(x,.15,z));
+    const canalCurve=new THREE.CatmullRomCurve3(canalPts); const canal=new THREE.Mesh(new THREE.TubeGeometry(canalCurve,80,8.6,12,false),waterMat); canal.rotation.x=Math.PI/2; canal.scale.z=.98; canal.receiveShadow=true; terrain.add(canal);
+    // Access lane and operational hardstanding.
+    box(-2,16,13,193,.65,gravel,.34); box(13,-63,65,47,.66,gravel,.35); box(8,75,39,72,.66,gravel,.35); box(37,95,13,105,.7,road,.36);
+    // South boat basin / turning area.
+    const basin=new THREE.Mesh(new THREE.CylinderGeometry(30,30,.55,40),waterMat); basin.scale.set(1,.8,.78); basin.position.set(0,.18,-78); basin.receiveShadow=true; terrain.add(basin);
+    // Workshops, office and small structures traced from the east-central yard.
+    box(15,50,17,12,5,building); box(21,35,12,8,4,building); box(26,75,18,10,4.5,building); box(-4,-20,11,8,4,building); box(26,-39,10,13,3.8,building);
+    // Main boat-storage rows: aligned with the long yard spine seen from above.
+    function boat(x,z,rot=0,len=8.5){ const b=new THREE.Mesh(new THREE.BoxGeometry(2.8,1.45,len),boatMat); b.position.set(x,1.22,z); b.rotation.y=rot; b.castShadow=true; terrain.add(b); }
+    const rows=[[-12,73,11,0.05],[-6,47,15,.05],[4,15,17,.08],[11,-19,12,.08],[24,-4,10,.11],[-7,-67,12,.12],[13,-82,11,.13],[31,-66,10,.12],[17,92,10,.05]];
+    rows.forEach(([x,z,count,rot])=>{for(let i=0;i<count;i++) boat(x+(i%2)*4.6,z-i*8.2,rot+(i%3)*.015,7.2+(i%4));});
+    // Contours: deliberately gentle: the river/canal corridor is lower and the eastern woodland rises slightly.
+    for(let r=26;r<105;r+=13){ const line=new THREE.Mesh(new THREE.RingGeometry(r-.32,r,80),new THREE.MeshBasicMaterial({color:0x9ed3a7,transparent:true,opacity:.24,side:THREE.DoubleSide})); line.rotation.x=-Math.PI/2; line.scale.set(1,.72,1); line.position.set(13,.43,-2); contours.add(line); }
+    function tree(x,z,s){ const trunk=new THREE.Mesh(new THREE.CylinderGeometry(.35,.5,s*1.8,6),mat(0x4d3825)); trunk.position.set(x,s*.9,z); const crown=new THREE.Mesh(new THREE.ConeGeometry(s,s*2.8,8),mat(0x1c5639)); crown.position.set(x,s*2.4,z); trunk.castShadow=crown.castShadow=true; trees.add(trunk,crown); }
+    // Eastern Pollard Lane woodland and the southern riverbank canopy.
+    for(let i=0;i<135;i++){ const side=i%3; const x=side===0?45+Math.random()*44:-70+Math.random()*28; const z=-110+Math.random()*228; tree(x,z,2.2+Math.random()*3.2); }
+    for(let i=0;i<75;i++) tree(-5+Math.random()*55,-115+Math.random()*22,2+Math.random()*3);
+    function label(text,x,z){ const c=document.createElement('canvas'); c.width=360;c.height=92; const ctx=c.getContext('2d'); ctx.fillStyle='rgba(5,18,15,.84)';ctx.roundRect(6,7,348,78,15);ctx.fill();ctx.fillStyle='#e9f8ed';ctx.font='600 28px sans-serif';ctx.fillText(text,25,54); const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),transparent:true,depthTest:false})); sp.position.set(x,11,z);sp.scale.set(20,5.1,1);labels.add(sp); }
+    label('Fallwood Marina',13,54); label('Boat storage yard',1,-22); label('South basin',1,-80); label('Leeds & Liverpool Canal',-43,13); label('Pollard Lane / woodland',50,43);
+    const views={site:[150,160,185,0,0,0],yard:[100,92,90,3,0,-12],basin:[85,64,-120,0,0,-75],access:[132,120,68,-12,0,42]};
+    function view(key){ const [x,y,z,tx,ty,tz]=views[key]; camera.position.set(x,y,z); controls.target.set(tx,ty,tz); controls.update(); }
+    document.querySelectorAll('[data-view]').forEach(b=>b.onclick=()=>{document.querySelectorAll('[data-view]').forEach(x=>x.classList.remove('active'));b.classList.add('active');view(b.dataset.view);});
+    document.querySelectorAll('[data-toggle]').forEach(b=>b.onclick=()=>{b.classList.toggle('active'); const g={contours,labels,trees}[b.dataset.toggle];g.visible=b.classList.contains('active');});
+    view('site');
+    addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+    (function render(){requestAnimationFrame(render);controls.update();renderer.render(scene,camera);})();
+  </script>
+</body>
+</html>
