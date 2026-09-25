@@ -2,63 +2,77 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="theme-color" content="#101714">
-<title>Fallwood Marina — 3D Base Map</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>Fallwood Marina — Terrain Base</title>
 <style>
-:root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,-apple-system,sans-serif}
-*{box-sizing:border-box}html,body,#map{width:100%;height:100%;margin:0}body{overflow:hidden;background:#101714;color:#eef3ef}
-#map{position:fixed;inset:0}.top{position:fixed;z-index:5;top:12px;left:12px;right:12px;display:flex;gap:10px;align-items:center;justify-content:space-between;padding:11px 12px;border:1px solid #ffffff24;border-radius:14px;background:#101714d9;backdrop-filter:blur(12px)}
-.title{font-weight:750;font-size:15px}.sub{font-size:11px;color:#b3c2b8;margin-top:2px}.badge{font-size:11px;color:#b7ebc9;background:#173e2b;padding:6px 9px;border-radius:999px;white-space:nowrap}
-.controls{position:fixed;z-index:5;left:12px;bottom:12px;display:flex;flex-wrap:wrap;gap:7px;max-width:min(620px,calc(100% - 24px));padding:8px;border:1px solid #ffffff20;border-radius:13px;background:#101714d9;backdrop-filter:blur(12px)}
-button{border:1px solid #ffffff25;background:#1b2822;color:#eef3ef;border-radius:9px;min-height:42px;padding:8px 11px;font-size:12px;cursor:pointer}button.active{background:#2f6548;border-color:#70c892}
-.relief{display:flex;align-items:center;gap:7px;padding:0 7px;font-size:11px;color:#bfcbc3}input{width:105px}
-.note{position:fixed;z-index:4;right:12px;bottom:12px;padding:8px 10px;border-radius:10px;background:#101714c9;border:1px solid #ffffff1c;font-size:11px;color:#bac7bf;max-width:280px}
-@media(max-width:680px){.top{top:8px;left:8px;right:8px}.controls{left:8px;bottom:8px;max-width:calc(100% - 16px)}.note{display:none}.badge{display:none}}
+:root{color-scheme:dark;font-family:Inter,system-ui,-apple-system,sans-serif}
+*{box-sizing:border-box}html,body,#app{width:100%;height:100%;margin:0}body{overflow:hidden;background:#d9e1d8}
+#app{position:fixed;inset:0}.hud{position:fixed;z-index:5;background:rgba(20,29,24,.9);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(12px);color:#eef4ef}
+.top{top:12px;left:12px;right:12px;padding:11px 13px;border-radius:14px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.title{font-weight:750;font-size:15px}.sub{font-size:11px;color:#b8c7bd;margin-top:2px}.badge{font-size:11px;padding:6px 9px;border-radius:999px;background:#214d36;color:#c9edd5;white-space:nowrap}
+.controls{left:12px;bottom:12px;padding:8px;border-radius:13px;display:flex;gap:7px;flex-wrap:wrap}
+button{border:1px solid rgba(255,255,255,.18);background:#1b2922;color:#eef4ef;border-radius:9px;min-height:42px;padding:8px 11px;font-size:12px;cursor:pointer}
+button.active{background:#376d4e;border-color:#84cfa0}.facts{right:12px;bottom:12px;padding:10px 12px;border-radius:12px;font-size:11px;line-height:1.5;color:#c5d1c9}
+#fallback{display:none;position:absolute;inset:0;align-items:center;justify-content:center;color:#253027;font-size:14px;padding:24px;text-align:center}
+@media(max-width:720px){.top{left:8px;right:8px;top:8px}.controls{left:8px;bottom:8px;right:8px}.facts{display:none}.badge{display:none}}
 </style>
 </head>
 <body>
-<main id="map" aria-label="Interactive 3D base map of Fallwood Marina"></main>
-<div class="top">
-  <div><div class="title">Fallwood Marina — base geometry</div><div class="sub">Master KML boundary · Google Earth road/canal trace · no pitches or buildings</div></div>
-  <div class="badge">TEST 03 · georeferenced</div>
-</div>
-<div class="controls">
-  <button id="view3d" class="active">3D view</button>
-  <button id="viewTop">Top view</button>
-  <button id="spin" class="active">Auto rotate</button>
-  <button id="boundary" class="active">Boundary</button>
-  <div class="relief">Relief <input id="relief" type="range" min="0" max="2.2" value="1" step=".05"></div>
-</div>
-<div class="note">Road and canal positions are georeferenced from the supplied Earth map. Height is still a rough terrain pass, not survey data.</div>
+<div id="app"></div>
+<div class="hud top"><div><div class="title">Fallwood Marina — terrain base</div><div class="sub">Exact KML footprint · no roads · no caravans · no buildings</div></div><div class="badge">TEST 04 · geometry reset</div></div>
+<div class="hud controls"><button id="view3d" class="active">3D view</button><button id="viewTop">Top view</button><button id="spin" class="active">Auto rotate</button><button id="wire" class="active">Surface grid</button><button id="boundary" class="active">Boundary</button></div>
+<div class="hud facts"><b>Confirmed footprint</b><br>16,088.32 m² · 704.31 m perimeter<br><b>Earth elevation estimate</b><br>52.92–64.69 m · median 58.61 m<br><span style="color:#94a79b">Detailed surface still interpolated until contour data is available.</span></div>
+<div id="fallback">3D renderer could not start. The map geometry is saved correctly in the project.</div>
 <script type="module">
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
-import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js';
-
-const ROAD=[{"outer":[[456,288],[452,289],[443,298],[431,306],[429,310],[426,310],[422,317]],"holes":[]},{"outer":[[642,210],[624,212],[637,232],[637,238],[620,241],[604,241],[603,243],[596,242],[584,243],[583,245],[575,246],[567,245],[553,247],[538,252],[501,260],[498,264],[495,263],[489,268],[484,268],[466,284],[469,285],[468,290],[465,290],[463,286],[461,297],[457,296],[457,292],[392,347],[380,370],[380,375],[367,401],[364,402],[355,420],[340,464],[342,473],[343,468],[346,469],[346,473],[341,479],[335,478],[331,493],[327,499],[323,511],[321,512],[317,525],[313,530],[300,562],[297,565],[296,572],[273,600],[249,634],[248,639],[233,650],[226,660],[248,660],[251,656],[253,656],[293,602],[294,598],[297,597],[309,581],[309,578],[312,575],[337,519],[339,511],[345,502],[355,473],[354,471],[352,471],[351,477],[348,478],[348,471],[346,468],[351,466],[356,467],[358,465],[358,460],[360,459],[370,430],[370,424],[381,402],[384,401],[405,359],[404,356],[408,351],[416,346],[417,342],[427,334],[432,326],[435,326],[439,320],[470,297],[470,294],[473,293],[474,286],[477,287],[477,290],[477,287],[480,284],[491,284],[496,280],[500,280],[505,275],[530,271],[557,263],[572,262],[573,260],[588,260],[589,258],[594,258],[595,256],[600,257],[601,259],[602,251],[605,252],[605,257],[609,258],[615,250],[619,251],[619,255],[620,252],[624,255],[624,250],[627,251],[630,249],[630,254],[634,254],[643,249],[645,242],[654,228]],"holes":[[[252,647],[253,651],[248,653],[247,657],[243,657],[242,653],[246,652],[248,647]],[[252,644],[255,638],[260,641],[257,645]],[[510,263],[514,265],[514,269],[512,271],[509,270]],[[516,267],[516,265],[522,260],[531,263],[531,266],[528,268],[519,269]],[[562,253],[563,258],[561,260],[550,260],[546,264],[540,263],[540,257],[542,255],[549,257],[555,250]]]},{"outer":[[999,201],[984,232],[984,235],[974,251],[900,226],[886,224],[885,222],[829,214],[818,214],[817,216],[805,215],[804,217],[795,216],[748,223],[756,235],[800,233],[801,231],[812,232],[813,230],[864,236],[870,235],[871,237],[899,243],[950,259],[955,262],[963,263],[967,266],[963,279],[934,339],[934,342],[901,411],[886,447],[884,448],[876,466],[768,660],[784,660],[870,505],[874,495],[891,467],[980,272],[999,234]],"holes":[[[852,526],[853,530],[848,535],[850,538],[847,541],[840,541],[840,543],[843,543],[844,546],[840,547],[837,545],[836,540],[842,537],[843,528]],[[853,511],[856,511],[861,515],[861,518],[857,521],[858,524],[856,526],[853,526],[852,522],[850,521]],[[859,502],[862,501],[863,503],[867,500],[868,504],[866,507],[863,507],[859,504]],[[936,351],[938,353],[938,359],[934,361],[934,369],[932,370],[932,373],[928,374],[926,377],[928,380],[925,381],[925,384],[920,386],[918,379],[923,375],[923,369],[929,366],[929,359],[933,355],[931,352]],[[888,230],[892,231],[891,237],[887,234]],[[868,227],[874,225],[875,229],[881,230],[887,226],[888,230],[883,235],[876,235],[873,231],[869,231]],[[837,221],[845,221],[848,225],[851,223],[858,224],[859,229],[855,229],[854,231],[852,231],[851,228],[850,231],[841,229],[840,226],[837,225]]]},{"outer":[[948,152],[944,147],[937,148],[930,146],[894,147],[893,145],[889,145],[888,147],[881,147],[875,145],[858,146],[857,144],[845,146],[838,144],[821,145],[820,143],[816,143],[815,145],[801,143],[795,145],[792,143],[791,145],[785,144],[780,146],[778,144],[777,146],[770,145],[767,147],[764,145],[762,147],[748,146],[745,148],[734,147],[730,149],[726,147],[725,149],[719,148],[716,150],[711,148],[684,151],[683,153],[675,154],[667,153],[666,155],[659,154],[657,156],[639,156],[635,159],[632,159],[631,157],[630,159],[610,159],[595,161],[594,163],[587,162],[586,164],[579,163],[566,166],[551,166],[525,171],[522,173],[513,173],[500,176],[498,178],[493,177],[406,196],[330,210],[329,212],[326,211],[266,225],[265,227],[260,226],[228,235],[225,238],[222,238],[205,247],[205,250],[200,252],[199,255],[191,261],[188,271],[185,274],[185,285],[187,292],[196,305],[199,305],[200,308],[210,316],[216,317],[217,320],[242,331],[275,338],[308,338],[309,361],[307,363],[309,364],[309,367],[307,370],[308,377],[306,378],[308,380],[306,385],[307,392],[305,393],[302,420],[292,444],[291,451],[288,457],[280,464],[274,473],[267,477],[247,482],[245,480],[231,477],[200,466],[187,457],[176,453],[173,450],[169,450],[163,445],[146,445],[135,451],[125,466],[125,472],[123,474],[126,489],[140,505],[160,518],[209,535],[209,541],[198,586],[199,590],[197,591],[197,598],[203,603],[210,602],[213,598],[223,553],[220,550],[222,547],[221,540],[226,539],[227,530],[234,516],[238,513],[248,497],[254,495],[258,497],[271,493],[283,486],[283,483],[288,481],[300,467],[300,461],[308,451],[318,424],[322,397],[321,388],[323,387],[321,382],[323,379],[322,373],[324,372],[322,367],[324,363],[323,352],[325,351],[325,337],[349,327],[381,305],[429,276],[434,271],[495,234],[533,208],[539,202],[544,200],[550,192],[553,192],[559,184],[562,184],[563,180],[572,181],[592,177],[603,178],[621,208],[640,206],[624,182],[623,176],[625,174],[628,175],[629,173],[636,174],[637,172],[644,173],[657,170],[664,171],[665,169],[672,170],[673,168],[680,169],[681,167],[700,167],[713,165],[716,163],[719,165],[721,163],[735,164],[738,162],[750,163],[753,161],[757,163],[758,161],[764,162],[770,160],[772,162],[773,160],[779,161],[782,159],[787,161],[788,159],[794,160],[797,158],[800,160],[803,158],[810,158],[816,160],[833,159],[834,161],[846,159],[854,161],[870,160],[871,162],[883,160],[889,162],[907,161],[908,163],[912,163],[913,161],[943,163],[948,157]],"holes":[[[139,472],[151,460],[158,460],[159,462],[168,465],[170,468],[174,468],[176,471],[181,472],[194,481],[200,482],[202,485],[212,486],[214,489],[227,493],[228,498],[221,507],[221,513],[218,518],[215,519],[170,505],[169,503],[165,502],[145,488],[140,480]],[[472,230],[474,230],[476,235],[479,236],[478,242],[475,242],[473,237],[472,242],[468,241],[468,236],[471,235]],[[526,189],[526,192],[469,230],[469,234],[460,237],[458,242],[454,239],[451,243],[446,244],[436,252],[369,293],[336,316],[321,320],[320,322],[280,323],[279,321],[257,318],[241,313],[228,306],[222,306],[220,302],[205,291],[202,282],[200,281],[201,275],[211,263],[221,258],[223,255],[227,255],[229,252],[233,252],[240,248],[274,241],[275,239],[304,234],[315,230],[322,230],[330,228],[331,226],[334,227],[502,192],[523,188]]]}];
-const WATER=[{"outer":[[99,243],[71,260],[61,274]],"holes":[]},{"outer":[[270,147],[240,156],[203,179]],"holes":[]},{"outer":[[808,17],[823,20],[850,22],[881,29],[840,15]],"holes":[]},{"outer":[[999,45],[964,45],[960,41],[960,8],[938,0],[572,0],[562,4],[539,9],[445,38],[409,47],[352,66],[351,78],[349,80],[347,80],[345,76],[342,80],[340,78],[339,71],[335,72],[332,80],[328,80],[325,75],[323,76],[326,77],[325,80],[318,80],[317,78],[309,80],[227,113],[160,147],[119,173],[0,264],[0,322],[49,284],[66,260],[72,255],[234,155],[290,137],[296,133],[359,108],[465,79],[473,75],[527,58],[637,29],[647,25],[674,24],[700,18],[719,16],[783,16],[838,11],[901,32],[914,34],[918,32],[932,33],[934,37],[934,34],[937,33],[939,45],[959,50],[999,65]],"holes":[]}];
-const BOUNDARY=[[48.770405158135496,133.12532917838956],[46.12968050241793,143.65839036789518],[5.643155776133448,117.0135489749255],[-22.579155107949326,74.67918403527781],[-37.53486457971693,39.063049574125856],[-52.101790344338454,-2.822626339073982],[-62.628424742952966,-30.964818214776948],[-68.37180814552613,-83.3605351306548],[-61.7768005039969,-105.36746329375278],[-42.925070875312684,-113.50503233085996],[-22.89454926628307,-118.57497382365152],[15.73211401491078,-124.38808625454416],[32.121485204645545,-118.76968926586886],[18.89398759923542,-83.78087763385702],[12.515212584393892,-53.28187482612421],[2.02401691535276,-34.82960038188769],[0.47756959289422324,2.1841354409627094],[2.19031983775439,24.785680895005633],[19.312375690761364,52.6542659291039],[30.24242467346205,48.322363435320334],[42.858034459994734,57.67863685904505],[30.323429479239334,65.7385968863313],[63.578252076497066,110.74239591708712]];
-const crop={x0:80,y0:60,x1:2320,y1:1540,w:1000,h:661};
-const GEO={e0:-145.0714353718,n0:-58.6034124113,ex:0.0726628851,nx:0.0928339612,ey:0.0926402518,ny:-0.0725298396};
-function pxToLocal(px,py){return [GEO.e0+GEO.ex*px+GEO.ey*py,GEO.n0+GEO.nx*px+GEO.ny*py]}
-const mount=document.querySelector('#map'),scene=new THREE.Scene();scene.background=new THREE.Color(0xb9c9bb);scene.fog=new THREE.Fog(0xb9c9bb,270,520);
-const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.1,1000),renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.shadowMap.enabled=true;mount.append(renderer.domElement);
-const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.055;controls.minDistance=65;controls.maxDistance=440;controls.maxPolarAngle=Math.PI*.495;
-scene.add(new THREE.HemisphereLight(0xffffff,0x536252,2.25));const sun=new THREE.DirectionalLight(0xfff6dc,2.35);sun.position.set(-120,180,80);sun.castShadow=true;scene.add(sun);
-let relief=1;const ref={e:37.2075,n:48.0799,h:58.0714};function elevation(e,n){const trend=.030*(e-ref.e)-.022*(n-ref.n),local=.65*Math.sin((e+18)/38)*Math.cos((n-6)/52);return ref.h+(trend+local)*relief}
-function makeCanvasTexture(){const c=document.createElement('canvas');c.width=crop.w;c.height=crop.h;const ctx=c.getContext('2d');ctx.fillStyle='#6e986e';ctx.fillRect(0,0,c.width,c.height);function drawGroups(groups,color){ctx.fillStyle=color;for(const g of groups){ctx.beginPath();for(const ring of [g.outer,...g.holes]){if(!ring.length)continue;ctx.moveTo(ring[0][0],ring[0][1]);for(let i=1;i<ring.length;i++)ctx.lineTo(ring[i][0],ring[i][1]);ctx.closePath()}ctx.fill('evenodd')}}drawGroups(WATER,'#5685ae');drawGroups(ROAD,'#a3a6a4');const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=renderer.capabilities.getMaxAnisotropy();return t}
-const texture=makeCanvasTexture();let terrain;function buildTerrain(){if(terrain){scene.remove(terrain);terrain.geometry.dispose();terrain.material.dispose()}const cols=82,rows=58,positions=[],uvs=[],indices=[];for(let j=0;j<=rows;j++)for(let i=0;i<=cols;i++){const u=i/cols,v=j/rows,px=crop.x0+u*(crop.x1-crop.x0),py=crop.y0+v*(crop.y1-crop.y0),[e,n]=pxToLocal(px,py);positions.push(e,elevation(e,n)-54,-n);uvs.push(u,1-v)}for(let j=0;j<rows;j++)for(let i=0;i<cols;i++){const a=j*(cols+1)+i,b=a+1,c=a+cols+1,d=c+1;indices.push(a,c,b,b,c,d)}const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setIndex(indices);g.computeVertexNormals();terrain=new THREE.Mesh(g,new THREE.MeshStandardMaterial({map:texture,roughness:.94,metalness:0}));terrain.receiveShadow=true;scene.add(terrain)}buildTerrain();
-const boundaryMat=new THREE.LineBasicMaterial({color:0x27332c,transparent:true,opacity:.8});let boundaryLine;function buildBoundary(){if(boundaryLine)scene.remove(boundaryLine);const pts=BOUNDARY.map(([e,n])=>new THREE.Vector3(e,elevation(e,n)-53.35,-n));pts.push(pts[0].clone());boundaryLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),boundaryMat);scene.add(boundaryLine)}buildBoundary();
-const target=new THREE.Vector3(7,2,-8);function set3d(){camera.position.set(205,155,185);controls.target.copy(target);controls.update()}function setTop(){camera.position.set(7,315,-8);controls.target.copy(target);controls.update()}set3d();
-let spinning=true,interacting=false;controls.addEventListener('start',()=>interacting=true);controls.addEventListener('end',()=>interacting=false);
-const view3dBtn=document.querySelector('#view3d'),viewTopBtn=document.querySelector('#viewTop');
-view3dBtn.onclick=()=>{set3d();view3dBtn.classList.add('active');viewTopBtn.classList.remove('active')};
-viewTopBtn.onclick=()=>{setTop();viewTopBtn.classList.add('active');view3dBtn.classList.remove('active')};
-document.querySelector('#spin').onclick=e=>{spinning=!spinning;e.currentTarget.classList.toggle('active',spinning);e.currentTarget.textContent=spinning?'Auto rotate':'Rotation paused'};
-document.querySelector('#boundary').onclick=e=>{boundaryLine.visible=!boundaryLine.visible;e.currentTarget.classList.toggle('active',boundaryLine.visible)};
-document.querySelector('#relief').oninput=e=>{relief=Number(e.target.value);buildTerrain();buildBoundary()};
-addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
-let last=performance.now();(function render(t){requestAnimationFrame(render);const dt=Math.min((t-last)/1000,.05);last=t;if(spinning&&!interacting){const q=camera.position.clone().sub(controls.target);q.applyAxisAngle(new THREE.Vector3(0,1,0),dt*.08);camera.position.copy(controls.target).add(q)}controls.update();renderer.render(scene,camera)})(performance.now());
+const B=[
+[48.72,132.98],[46.08,143.50],[5.64,116.88],[-22.55,74.60],[-37.49,39.02],[-52.04,-2.82],[-62.56,-30.93],[-68.30,-83.27],[-61.71,-105.25],[-42.88,-113.38],[-22.87,-118.44],[15.71,-124.25],[32.09,-118.64],[18.87,-83.69],[12.50,-53.22],[2.02,-34.79],[0.48,2.18],[2.19,24.76],[19.29,52.60],[30.21,48.27],[42.81,57.61],[30.29,65.67],[63.51,110.62]
+];
+try{
+ const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm');
+ const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm');
+ const mount=document.querySelector('#app');
+ const scene=new THREE.Scene(); scene.background=new THREE.Color(0xd9e1d8); scene.fog=new THREE.Fog(0xd9e1d8,330,620);
+ const camera=new THREE.PerspectiveCamera(40,innerWidth/innerHeight,.1,1000); camera.position.set(210,165,205);
+ const renderer=new THREE.WebGLRenderer({antialias:true}); renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2)); renderer.shadowMap.enabled=true; mount.append(renderer.domElement);
+ const controls=new OrbitControls(camera,renderer.domElement); controls.enableDamping=true; controls.dampingFactor=.055; controls.target.set(0,3,0); controls.minDistance=70; controls.maxDistance=500; controls.maxPolarAngle=Math.PI*.495;
+ scene.add(new THREE.HemisphereLight(0xffffff,0x596457,2.25));
+ const sun=new THREE.DirectionalLight(0xffffff,2.5); sun.position.set(-130,220,80); sun.castShadow=true; scene.add(sun);
+ const minH=52.92,medH=58.61,maxH=64.69;
+ function elev(x,z){
+   let h=medH + 4.65*(x/68) + 1.15*(z/143);
+   h += .65*Math.sin((x+12)/34)*Math.cos((z-8)/48);
+   return Math.max(minH,Math.min(maxH,h));
+ }
+ const center=[B.reduce((s,p)=>s+p[0],0)/B.length,B.reduce((s,p)=>s+p[1],0)/B.length];
+ const rings=7,N=B.length,verts=[],cols=[];
+ function addV(x,z){const y=elev(x,z)-medH; verts.push(x,y,z); const t=(elev(x,z)-minH)/(maxH-minH); cols.push(.30+.22*t,.48+.26*t,.29+.16*t);}
+ addV(center[0],center[1]);
+ for(let r=1;r<=rings;r++){const f=r/rings;for(const p of B)addV(center[0]+(p[0]-center[0])*f,center[1]+(p[1]-center[1])*f);}
+ const idx=[];
+ for(let i=0;i<N;i++){idx.push(0,1+i,1+((i+1)%N));}
+ for(let r=1;r<rings;r++){const a=1+(r-1)*N,b=1+r*N;for(let i=0;i<N;i++){const ni=(i+1)%N;idx.push(a+i,b+i,a+ni,a+ni,b+i,b+ni);}}
+ const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3)); g.setIndex(idx); g.computeVertexNormals();
+ const landMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.97,metalness:0,side:THREE.DoubleSide});
+ const land=new THREE.Mesh(g,landMat); land.castShadow=true; land.receiveShadow=true; scene.add(land);
+ const wireMat=new THREE.MeshBasicMaterial({color:0x34463a,wireframe:true,transparent:true,opacity:.15});
+ const wireMesh=new THREE.Mesh(g.clone(),wireMat); wireMesh.position.y=.08; scene.add(wireMesh);
+ const linePts=B.map(([x,z])=>new THREE.Vector3(x,elev(x,z)-medH+.28,z)); linePts.push(linePts[0].clone());
+ const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts),new THREE.LineBasicMaterial({color:0x202a23,transparent:true,opacity:.92})); scene.add(line);
+ const pad=new THREE.Mesh(new THREE.PlaneGeometry(250,360),new THREE.MeshStandardMaterial({color:0xa9b9a8,roughness:1})); pad.rotation.x=-Math.PI/2; pad.position.y=-7.3; pad.receiveShadow=true; scene.add(pad);
+ const grid=new THREE.GridHelper(260,26,0x5b6a5e,0x77857a); grid.position.y=-7.2; grid.material.transparent=true; grid.material.opacity=.16; scene.add(grid);
+ function set3d(){camera.position.set(210,165,205);controls.target.set(0,3,0);controls.update()}
+ function setTop(){camera.position.set(0,330,.01);controls.target.set(0,0,0);controls.update()}
+ set3d();
+ const b3=document.querySelector('#view3d'),bt=document.querySelector('#viewTop'),bs=document.querySelector('#spin'),bw=document.querySelector('#wire'),bb=document.querySelector('#boundary');
+ b3.onclick=()=>{set3d();b3.classList.add('active');bt.classList.remove('active')};
+ bt.onclick=()=>{setTop();bt.classList.add('active');b3.classList.remove('active')};
+ let spinning=true,dragging=false; bs.onclick=()=>{spinning=!spinning;bs.classList.toggle('active',spinning);bs.textContent=spinning?'Auto rotate':'Rotation paused'};
+ bw.onclick=()=>{wireMesh.visible=!wireMesh.visible;bw.classList.toggle('active',wireMesh.visible)};
+ bb.onclick=()=>{line.visible=!line.visible;bb.classList.toggle('active',line.visible)};
+ controls.addEventListener('start',()=>dragging=true);controls.addEventListener('end',()=>dragging=false);
+ addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
+ let last=performance.now(); (function loop(t){requestAnimationFrame(loop);const dt=Math.min((t-last)/1000,.05);last=t;if(spinning&&!dragging){const q=camera.position.clone().sub(controls.target);q.applyAxisAngle(new THREE.Vector3(0,1,0),dt*.07);camera.position.copy(controls.target).add(q)}controls.update();renderer.render(scene,camera)})(performance.now());
+}catch(e){document.querySelector('#fallback').style.display='flex';}
 </script>
 </body>
 </html>
