@@ -64,7 +64,7 @@ try{
  const pad=new THREE.Mesh(new THREE.PlaneGeometry(250,360),new THREE.MeshStandardMaterial({color:0xa9b9a8,roughness:1})); pad.rotation.x=-Math.PI/2; pad.position.y=-7.3; pad.receiveShadow=true; scene.add(pad);
  const grid=new THREE.GridHelper(260,26,0x5b6a5e,0x77857a); grid.position.y=-7.2; grid.material.transparent=true; grid.material.opacity=.16; scene.add(grid);
  function set3d(){camera.up.set(0,1,0);camera.position.set(210,165,205);controls.target.set(0,3,0);controls.update()}
- function setTop(){camera.up.set(0,0,-1);camera.position.set(0,330,0.001);controls.target.set(0,0,0);controls.update()}
+ function setTop(){camera.up.set(0,0,-1);camera.position.set(0,425,0.001);controls.target.set(0,0,0);controls.update()}
  set3d();
  const b3=document.querySelector('#view3d'),bt=document.querySelector('#viewTop'),bs=document.querySelector('#spin'),bw=document.querySelector('#wire'),bb=document.querySelector('#boundary');
  b3.onclick=()=>{set3d();b3.classList.add('active');bt.classList.remove('active')};
