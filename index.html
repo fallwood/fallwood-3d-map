@@ -43,15 +43,18 @@ try{
    h += .65*Math.sin((x+12)/34)*Math.cos((z-8)/48);
    return Math.max(minH,Math.min(maxH,h));
  }
- const center=[B.reduce((s,p)=>s+p[0],0)/B.length,B.reduce((s,p)=>s+p[1],0)/B.length];
- const rings=7,N=B.length,verts=[],cols=[];
- function addV(x,z){const y=elev(x,z)-medH; verts.push(x,y,z); const t=(elev(x,z)-minH)/(maxH-minH); cols.push(.30+.22*t,.48+.26*t,.29+.16*t);}
- addV(center[0],center[1]);
- for(let r=1;r<=rings;r++){const f=r/rings;for(const p of B)addV(center[0]+(p[0]-center[0])*f,center[1]+(p[1]-center[1])*f);}
- const idx=[];
- for(let i=0;i<N;i++){idx.push(0,1+i,1+((i+1)%N));}
- for(let r=1;r<rings;r++){const a=1+(r-1)*N,b=1+r*N;for(let i=0;i<N;i++){const ni=(i+1)%N;idx.push(a+i,b+i,a+ni,a+ni,b+i,b+ni);}}
- const g=new THREE.BufferGeometry(); g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3)); g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3)); g.setIndex(idx); g.computeVertexNormals();
+ const outline=B.map(([x,z])=>new THREE.Vector2(x,z));
+ const faces=THREE.ShapeUtils.triangulateShape(outline,[]);
+ const verts=[],cols=[];
+ function addV(x,z){const eh=elev(x,z),y=eh-medH,t=(eh-minH)/(maxH-minH);verts.push(x,y,z);cols.push(.30+.22*t,.48+.26*t,.29+.16*t);}
+ function mid(a,b){return[(a[0]+b[0])/2,(a[1]+b[1])/2];}
+ function emitTri(a,b,c,depth){
+   if(depth<=0){addV(a[0],a[1]);addV(b[0],b[1]);addV(c[0],c[1]);return;}
+   const ab=mid(a,b),bc=mid(b,c),ca=mid(c,a),d=depth-1;
+   emitTri(a,ab,ca,d);emitTri(ab,b,bc,d);emitTri(ca,bc,c,d);emitTri(ab,bc,ca,d);
+ }
+ for(const face of faces)emitTri(B[face[0]],B[face[1]],B[face[2]],2);
+ const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(verts,3));g.setAttribute('color',new THREE.Float32BufferAttribute(cols,3));g.computeVertexNormals();
  const landMat=new THREE.MeshStandardMaterial({vertexColors:true,roughness:.97,metalness:0,side:THREE.DoubleSide});
  const land=new THREE.Mesh(g,landMat); land.castShadow=true; land.receiveShadow=true; scene.add(land);
  const wireMat=new THREE.MeshBasicMaterial({color:0x34463a,wireframe:true,transparent:true,opacity:.15});
@@ -60,8 +63,8 @@ try{
  const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints(linePts),new THREE.LineBasicMaterial({color:0x202a23,transparent:true,opacity:.92})); scene.add(line);
  const pad=new THREE.Mesh(new THREE.PlaneGeometry(250,360),new THREE.MeshStandardMaterial({color:0xa9b9a8,roughness:1})); pad.rotation.x=-Math.PI/2; pad.position.y=-7.3; pad.receiveShadow=true; scene.add(pad);
  const grid=new THREE.GridHelper(260,26,0x5b6a5e,0x77857a); grid.position.y=-7.2; grid.material.transparent=true; grid.material.opacity=.16; scene.add(grid);
- function set3d(){camera.position.set(210,165,205);controls.target.set(0,3,0);controls.update()}
- function setTop(){camera.position.set(0,330,.01);controls.target.set(0,0,0);controls.update()}
+ function set3d(){camera.up.set(0,1,0);camera.position.set(210,165,205);controls.target.set(0,3,0);controls.update()}
+ function setTop(){camera.up.set(0,0,-1);camera.position.set(0,330,0.001);controls.target.set(0,0,0);controls.update()}
  set3d();
  const b3=document.querySelector('#view3d'),bt=document.querySelector('#viewTop'),bs=document.querySelector('#spin'),bw=document.querySelector('#wire'),bb=document.querySelector('#boundary');
  b3.onclick=()=>{set3d();b3.classList.add('active');bt.classList.remove('active')};
