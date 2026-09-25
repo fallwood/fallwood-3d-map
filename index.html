@@ -19,9 +19,9 @@ button.active{background:#376d4e;border-color:#84cfa0}.facts{right:12px;bottom:1
 </head>
 <body>
 <div id="app"></div>
-<div class="hud top"><div><div class="title">Fallwood Marina — terrain base</div><div class="sub">Terrain Section A from KML · southern caravan area continues beyond this section</div></div><div class="badge">TEST 04 · Section A</div></div>
+<div class="hud top"><div><div class="title">Fallwood Marina — known terrain coverage</div><div class="sub">Google Earth Sections A + B · still partial · no roads, caravans or buildings</div></div><div class="badge">TEST 05 · Sections A+B</div></div>
 <div class="hud controls"><button id="view3d" class="active">3D view</button><button id="viewTop">Top view</button><button id="spin" class="active">Auto rotate</button><button id="wire" class="active">Surface grid</button><button id="boundary" class="active">Boundary</button></div>
-<div class="hud facts"><b>Current contour selection — Section A</b><br>16,088.32 m² · 704.31 m perimeter<br><b>Earth elevation estimate for this section</b><br>52.92–64.69 m · median 58.61 m<br><span style="color:#94a79b">Not the full marina: southern caravan area is outside this selection. Additional overlapping sections will extend the terrain.</span></div>
+<div class="hud facts"><b>Known captured terrain coverage</b><br>≈18,300 m² across overlapping Sections A+B<br><b>Section A</b> · 16,088.32 m² · 52.92–64.69 m<br><b>Lower reference B</b> · 7,717.15 m² · 55.65–63.32 m<br><span style="color:#94a79b">Still not the final marina boundary: some outer-edge ground may remain outside the captured sections.</span></div>
 <div id="fallback">3D renderer could not start. The map geometry is saved correctly in the project.</div>
 <script type="module">
 const ORIGIN={lat:53.8245,lon:-1.6377};
@@ -33,16 +33,19 @@ function projectGeo(lon,lat){
 const SECTION_A_GEO=[
 [-1.637070832292284,53.82569505129132],[-1.637111021379303,53.82578967138987],[-1.637727184242704,53.82555031670721],[-1.638156698507109,53.82517002063652],[-1.638384308874623,53.82485007545704],[-1.638606002357844,53.82447381002846],[-1.638766206802085,53.82422100441755],[-1.638853615133298,53.82375032568427],[-1.638753245965531,53.82355263408502],[-1.638466342217022,53.8234795330586],[-1.63816149847868,53.82343398899928],[-1.637573640775114,53.82338176892183],[-1.637324211565028,53.8234322398407],[-1.637525520342585,53.82374654968332],[-1.637622598674319,53.82402052688705],[-1.637782263777897,53.82418628648865],[-1.637805799100248,53.82451878653477],[-1.637779732820114,53.82472181967203],[-1.637519152910304,53.82497216743086],[-1.637352808915016,53.82493325328866],[-1.637160812434652,53.82501730212285],[-1.637351576105991,53.82508970597567],[-1.636845472239286,53.8254939819808]
 ];
-const TERRAIN_SECTIONS=[{
-  id:'A',
-  name:'Section A',
-  geo:SECTION_A_GEO,
-  outline:SECTION_A_GEO.map(([lon,lat])=>projectGeo(lon,lat)),
-  minH:52.92,
-  medH:58.61,
-  maxH:64.69
-}];
-const B=TERRAIN_SECTIONS[0].outline;
+const SECTION_B_GEO=[
+[-1.63850318369493,53.82444133177366],[-1.638711622475736,53.82397844587482],[-1.63838667522302,53.82368175952495],[-1.637452776002044,53.82375023792852],[-1.637246800002568,53.82414489990367],[-1.637505624991749,53.82459958034501],[-1.637975795114923,53.82465908958971]
+];
+// Union of the two real Google Earth reference polygons. This is known captured terrain,
+// not a claim that the union is the marina's final legal/site boundary.
+const KNOWN_COVERAGE_GEO=[
+[-1.637324211565028,53.823432239840699],[-1.637573640775114,53.823381768921827],[-1.638161498478680,53.823433988999277],[-1.638466342217022,53.823479533058602],[-1.638753245965531,53.823552634085019],[-1.638853615133298,53.823750325684273],[-1.638766206802085,53.824221004417552],[-1.638606002357844,53.824473810028458],[-1.638384308874623,53.824850075457043],[-1.638156698507109,53.825170020636520],[-1.637727184242704,53.825550316707208],[-1.637111021379303,53.825789671389870],[-1.637070832292284,53.825695051291319],[-1.636845472239286,53.825493981980799],[-1.637351576105991,53.825089705975671],[-1.637160812434652,53.825017302122852],[-1.637352808915016,53.824933253288663],[-1.637519152910304,53.824972167430857],[-1.637779732820114,53.824721819672028],[-1.637790792590991,53.824635673894143],[-1.637505624991749,53.824599580345009],[-1.637246800002568,53.824144899903672],[-1.637452776002044,53.823750237928522],[-1.637524513555095,53.823744977753762]
+];
+const TERRAIN_SECTIONS=[
+  {id:'A',name:'Section A',geo:SECTION_A_GEO,outline:SECTION_A_GEO.map(([lon,lat])=>projectGeo(lon,lat)),minH:52.92,medH:58.61,maxH:64.69},
+  {id:'B',name:'Lower reference B',geo:SECTION_B_GEO,outline:SECTION_B_GEO.map(([lon,lat])=>projectGeo(lon,lat)),minH:55.65,medH:60.02,maxH:63.32}
+];
+const B=KNOWN_COVERAGE_GEO.map(([lon,lat])=>projectGeo(lon,lat));
 try{
  const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm');
  const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm');
@@ -55,11 +58,14 @@ try{
  const sun=new THREE.DirectionalLight(0xffffff,2.5); sun.position.set(-130,220,80); sun.castShadow=true; scene.add(sun);
  const minH=52.92,medH=58.61,maxH=64.69;
  function elev(x,z){
-   // Earth gives the measured range for Section A; Leeds records the site as rising eastward.
-   // The fitted east-west plane passes through min 52.92 m, median 58.61 m and max 64.69 m.
-   const eastSlope=0.0892;
-   let h=medH + eastSlope*(x+12.0);
-   h += .15*Math.sin((x+8)/36)*Math.cos((z-6)/52);
+   // Profile-informed interpolation only — not survey-grade contour geometry.
+   // Google Earth profiles show the dominant grade rising west-to-east:
+   // 57.31→62.06 m over 68.77 m, and 57.49→63.03 m over 61.72 m.
+   let h=59.55 + 0.071*x + 0.002*z;
+   h += .32*Math.sin((z+20)/34) + .18*Math.sin((x+z)/27);
+   // Broad west-side low and east-side rise keep the surface inside Earth's measured range.
+   h -= 1.15*Math.exp(-(((x+64)*(x+64))/900 + ((z-40)*(z-40))/4200));
+   h += .70*Math.exp(-(((x-24)*(x-24))/900 + ((z+50)*(z+50))/3600));
    return Math.max(minH,Math.min(maxH,h));
  }
  const outline=B.map(([x,z])=>new THREE.Vector2(x,z));
