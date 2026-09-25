@@ -51,8 +51,9 @@ const texture=makeCanvasTexture();let terrain;function buildTerrain(){if(terrain
 const boundaryMat=new THREE.LineBasicMaterial({color:0x27332c,transparent:true,opacity:.8});let boundaryLine;function buildBoundary(){if(boundaryLine)scene.remove(boundaryLine);const pts=BOUNDARY.map(([e,n])=>new THREE.Vector3(e,elevation(e,n)-53.35,-n));pts.push(pts[0].clone());boundaryLine=new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),boundaryMat);scene.add(boundaryLine)}buildBoundary();
 const target=new THREE.Vector3(7,2,-8);function set3d(){camera.position.set(205,155,185);controls.target.copy(target);controls.update()}function setTop(){camera.position.set(7,315,-8);controls.target.copy(target);controls.update()}set3d();
 let spinning=true,interacting=false;controls.addEventListener('start',()=>interacting=true);controls.addEventListener('end',()=>interacting=false);
-document.querySelector('#view3d').onclick=()=>{set3d();view3d.classList.add('active');viewTop.classList.remove('active')};
-document.querySelector('#viewTop').onclick=()=>{setTop();viewTop.classList.add('active');view3d.classList.remove('active')};
+const view3dBtn=document.querySelector('#view3d'),viewTopBtn=document.querySelector('#viewTop');
+view3dBtn.onclick=()=>{set3d();view3dBtn.classList.add('active');viewTopBtn.classList.remove('active')};
+viewTopBtn.onclick=()=>{setTop();viewTopBtn.classList.add('active');view3dBtn.classList.remove('active')};
 document.querySelector('#spin').onclick=e=>{spinning=!spinning;e.currentTarget.classList.toggle('active',spinning);e.currentTarget.textContent=spinning?'Auto rotate':'Rotation paused'};
 document.querySelector('#boundary').onclick=e=>{boundaryLine.visible=!boundaryLine.visible;e.currentTarget.classList.toggle('active',boundaryLine.visible)};
 document.querySelector('#relief').oninput=e=>{relief=Number(e.target.value);buildTerrain();buildBoundary()};
