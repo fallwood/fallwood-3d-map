@@ -55,8 +55,11 @@ try{
  const sun=new THREE.DirectionalLight(0xffffff,2.5); sun.position.set(-130,220,80); sun.castShadow=true; scene.add(sun);
  const minH=52.92,medH=58.61,maxH=64.69;
  function elev(x,z){
-   let h=medH + 4.65*(x/68) + 1.15*(z/143);
-   h += .65*Math.sin((x+12)/34)*Math.cos((z-8)/48);
+   // Earth gives the measured range for Section A; Leeds records the site as rising eastward.
+   // The fitted east-west plane passes through min 52.92 m, median 58.61 m and max 64.69 m.
+   const eastSlope=0.0892;
+   let h=medH + eastSlope*(x+12.0);
+   h += .15*Math.sin((x+8)/36)*Math.cos((z-6)/52);
    return Math.max(minH,Math.min(maxH,h));
  }
  const outline=B.map(([x,z])=>new THREE.Vector2(x,z));
