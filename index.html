@@ -24,9 +24,18 @@ button.active{background:#376d4e;border-color:#84cfa0}.facts{right:12px;bottom:1
 <div class="hud facts"><b>Current contour selection — Section A</b><br>16,088.32 m² · 704.31 m perimeter<br><b>Earth elevation estimate for this section</b><br>52.92–64.69 m · median 58.61 m<br><span style="color:#94a79b">Not the full marina: southern caravan area is outside this selection. Additional overlapping sections will extend the terrain.</span></div>
 <div id="fallback">3D renderer could not start. The map geometry is saved correctly in the project.</div>
 <script type="module">
-const B=[
+const SECTION_A=[
 [48.72,132.98],[46.08,143.50],[5.64,116.88],[-22.55,74.60],[-37.49,39.02],[-52.04,-2.82],[-62.56,-30.93],[-68.30,-83.27],[-61.71,-105.25],[-42.88,-113.38],[-22.87,-118.44],[15.71,-124.25],[32.09,-118.64],[18.87,-83.69],[12.50,-53.22],[2.02,-34.79],[0.48,2.18],[2.19,24.76],[19.29,52.60],[30.21,48.27],[42.81,57.61],[30.29,65.67],[63.51,110.62]
 ];
+const TERRAIN_SECTIONS=[{
+  id:'A',
+  name:'Section A',
+  outline:SECTION_A,
+  minH:52.92,
+  medH:58.61,
+  maxH:64.69
+}];
+const B=TERRAIN_SECTIONS[0].outline;
 try{
  const THREE=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/+esm');
  const {OrbitControls}=await import('https://cdn.jsdelivr.net/npm/three@0.180.0/examples/jsm/controls/OrbitControls.js/+esm');
